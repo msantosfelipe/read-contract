@@ -18,6 +18,11 @@ SEARCH_CPFCNPJ = 'CNPJ/CPF'
 
 app = Flask(__name__)
 
+@app.before_request
+def authorizer():
+    if request.headers.get('x-api-key') != settings.PRIVATE_KEY:
+         abort(401, 'not authorized')
+
 @app.route('/contract/extraction', methods=['POST'])
 def new_contract():
     if 'image' in request.files:
@@ -31,34 +36,35 @@ def new_contract():
 
 @app.route('/contract', methods=['POST'])
 def save_contract():
-        json_data = request.json
-        contract_data = Contract(
-             json_data.get('projetista'), 
-             json_data.get('data'), 
-             json_data.get('contrato'), 
-             json_data.get('contratante'), 
-             json_data.get('endereco'), 
-             json_data.get('email'), 
-             json_data.get('cpfcnpj')
-             )
-        mongo_client = repository.MongoRespository(settings.DB_MONGO_URL, settings.DB_MONGO_DATABASE, settings.DB_MONGO_COLLECTION)
-        inserted_id = mongo_client.insert_contract(contract_data)
-        inserted_contract = mongo_client.get_contract(inserted_id)
-        inserted_contract["_id"] = str(inserted_contract["_id"])
-        result_dict = json_util.dumps(inserted_contract, default=str)
-        result_dict = json_util.loads(result_dict)
+    json_data = request.json
+    contract_data = Contract(
+            json_data.get('projetista'), 
+            json_data.get('data'), 
+            json_data.get('contrato'), 
+            json_data.get('contratante'), 
+            json_data.get('endereco'), 
+            json_data.get('email'), 
+            json_data.get('cpfcnpj')
+            )
+    mongo_client = repository.MongoRespository(settings.DB_MONGO_URL, settings.DB_MONGO_DATABASE, settings.DB_MONGO_COLLECTION)
+    inserted_id = mongo_client.insert_contract(contract_data)
+    inserted_contract = mongo_client.get_contract(inserted_id)
+    inserted_contract["_id"] = str(inserted_contract["_id"])
+    result_dict = json_util.dumps(inserted_contract, default=str)
+    result_dict = json_util.loads(result_dict)
 
-        return jsonify(result_dict)
+    return jsonify(result_dict)
+
 
 def extract_contract_data(text):
-        projetista = extraction.filter_from_text(text, SEARCH_PROJETISTA)
-        data = extraction.filter_from_text(text, SEARCH_DATA)
-        contrato = extraction.filter_from_text(text, SEARCH_CONTRATO)
-        contratante = extraction.filter_from_text(text, SEARCH_CONTRATANTE)
-        endereco = extraction.filter_from_text(text, SEARCH_ENDERECO)
-        email = extraction.filter_from_text(text, SEARCH_EMAIL)
-        cpfcnpj = extraction.remove_spaces(extraction.filter_from_text(text, SEARCH_CPFCNPJ))
-        return Contract(projetista, data, contrato, contratante, endereco, email, cpfcnpj)
+    projetista = extraction.filter_from_text(text, SEARCH_PROJETISTA)
+    data = extraction.filter_from_text(text, SEARCH_DATA)
+    contrato = extraction.filter_from_text(text, SEARCH_CONTRATO)
+    contratante = extraction.filter_from_text(text, SEARCH_CONTRATANTE)
+    endereco = extraction.filter_from_text(text, SEARCH_ENDERECO)
+    email = extraction.filter_from_text(text, SEARCH_EMAIL)
+    cpfcnpj = extraction.remove_spaces(extraction.filter_from_text(text, SEARCH_CPFCNPJ))
+    return Contract(projetista, data, contrato, contratante, endereco, email, cpfcnpj)
 
 def run_local():
     # used just for testing
