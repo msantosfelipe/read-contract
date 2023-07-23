@@ -20,7 +20,7 @@ create-venv:
 	python3 -m venv read-contract
 
 activate-venv:
-	source read-contract/bin/activate
+	source ./read-contract/bin/activate
 
 deactivate-venv:
 	deactivate
